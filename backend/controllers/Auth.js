@@ -230,11 +230,11 @@ exports.changePassword = async (req,res)=>{
 
         const response=await User.findOneAndUpdate(
             {email:user.email},
-            { $set: { password:hashedPassword } },
-            { new: true, upsert: true }
+            { password:hashedPassword },
+            { new: true}
         )
 
-        const mail=mailSender(user.email, "Password changed!", "<p>Password updated successfully!</p>");
+        const mail=await mailSender(user.email, "Password changed!", "<p>Password updated successfully!</p>");
 
         res.status(200).json({
             success:true,
