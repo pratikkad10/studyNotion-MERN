@@ -4,6 +4,7 @@ const otpGenerator=require('otp-generator');
 const bcrypt=require('bcrypt');
 const Profile = require('../models/Profile');
 const jwt=require('jsonwebtoken');
+const mailSender = require('../utils/mailSender');
 require('dotenv').config();
 
 //sendOTP
@@ -206,3 +207,48 @@ exports.login = async (req,res)=>{
 }
 
 //change password
+
+exports.changePassword = async (req,res)=>{
+    try {
+        const user=req.user;
+        const {oldPassword, newPassword, confirmPassword}=req.body;
+        if(!oldPassword || !newPassword || !confirmPassword){
+            return res.status(403).json({
+                success:false,
+                message:"All feilds required!",
+            })
+        }
+
+        if(newPassword !== confirmPassword){
+            return res.status(400).json({
+                success:false,
+                message:"New password not matched!",
+            })
+        }
+
+        const hashedPassword=await bcrypt.hash(newPassword, 10);
+
+        const response=await User.findOneAndUpdate(
+            {email:user.email},
+            { $set: { password:hashedPassword } },
+            { new: true, upsert: true }
+        )
+
+        const mail=mailSender(user.email, "Password changed!", "<p>Password updated successfully!</p>");
+
+        res.status(200).json({
+            success:true,
+            message:"password changed successfully!",
+            response,
+            mail
+        })
+
+        
+    } catch (error) {
+        res.status(500).json({
+            success:false,
+            message:"cannot change password!",
+            error:error.message
+        })
+    }
+}
